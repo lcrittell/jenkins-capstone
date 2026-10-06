@@ -54,6 +54,7 @@ pipeline {
                         returnStdout: true
                     ).trim()
                     echo "Staging URL: ${env.STAGING_URL}"
+                }
             }
         }
 
