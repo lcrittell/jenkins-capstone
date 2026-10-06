@@ -45,14 +45,15 @@ pipeline {
 
         stage('Deploy Staging') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'my-quay', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME')]) {
-                    sh '''
-                        echo "deploy staging!"
-                        def stagingUrl = "https://google.com"
-                        env.STAGING_URL = stagingUrl
-                        echo "Staging deployed to: ${env.STAGING_URL}"
-                    '''
-                }
+                script {
+                    env.STAGING_URL = sh(
+                        script: '''
+                            stagingUrl = "https://google.com"
+                            echo "Staging deployed to: ${env.STAGING_URL}"
+                        ''',
+                        returnStdout: true
+                    ).trim()
+                    echo "Staging URL: ${env.STAGING_URL}"
             }
         }
 
