@@ -30,5 +30,16 @@ pipeline {
                 }
             }
         }
+
+        stage('Deploy to local docker') {
+            steps {
+                sh '''
+                    docker pull quay.io/$QUAY_USERNAME/$APP_NAME:$APP_VERSION
+                    docker stop my-python-app || true
+                    docker rm my-python-app || true
+                    docker run -d --name my-python-app -p 8000:8000 quay.io/$QUAY_USERNAME/$APP_NAME:$APP_VERSION
+                '''
+            }
+        }
     }
 }
