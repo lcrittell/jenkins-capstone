@@ -4,4 +4,6 @@ COPY . .
 
 EXPOSE 8000
 
+RUN sed -i "s/#APP_VERSION#/$APP_VERSION/g" index.html
+
 CMD ["python", "app.py"]

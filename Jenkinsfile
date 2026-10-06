@@ -23,7 +23,7 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: 'my-quay', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME')]) {
                     sh '''
                         echo "$QUAY_PASSWORD" | docker login quay.io -u "$QUAY_USERNAME" --password-stdin
-                        docker build -t quay.io/$QUAY_USERNAME/$APP_NAME:$APP_VERSION .
+                        docker build --build-arg APP_VERSION="$APP_VERSION" -t quay.io/$QUAY_USERNAME/$APP_NAME:$APP_VERSION .
                         docker push quay.io/$QUAY_USERNAME/$APP_NAME:$APP_VERSION
                         docker logout quay.io
                     '''
