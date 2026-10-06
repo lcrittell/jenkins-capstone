@@ -69,7 +69,8 @@ pipeline {
                             </a>
                         </p>
                     """
-                    
+                }
+
                 timeout(time: 1, unit: 'HOURS') {
                     input(
                         message: """
