@@ -11,6 +11,7 @@ pipeline {
             steps {
                 sh '''
                     echo "Hello Jenkins"
+                    echo "My variable: $MY_VAR"
                 '''
             }
         }
