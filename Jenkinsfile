@@ -48,8 +48,7 @@ pipeline {
                 script {
                     env.STAGING_URL = sh(
                         script: '''
-                            stagingUrl = "https://google.com"
-                            echo "Staging deployed to: ${env.STAGING_URL}"
+                            echo "https://google.com"
                         ''',
                         returnStdout: true
                     ).trim()
