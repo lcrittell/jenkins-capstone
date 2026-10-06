@@ -33,12 +33,15 @@ pipeline {
 
         stage('Deploy to local docker') {
             steps {
-                sh '''
-                    docker pull quay.io/lccrittell/$APP_NAME:$APP_VERSION
-                    docker stop my-python-app || true
-                    docker rm my-python-app || true
-                    docker run -d --name my-python-app -p 8000:8000 quay.io/$QUAY_USERNAME/$APP_NAME:$APP_VERSION
-                '''
+                withCredentials([usernamePassword(credentialsId: 'my-quay', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME')]) {
+                    sh '''
+                        echo "$QUAY_PASSWORD" | docker login quay.io -u "$QUAY_USERNAME" --password-stdin
+                        docker pull quay.io/$QUAY_USERNAME/$APP_NAME:$APP_VERSION
+                        docker stop my-python-app || true
+                        docker rm my-python-app || true
+                        docker run -d --name my-python-app -p 8000:8000 quay.io/$QUAY_USERNAME/$APP_NAME:$APP_VERSION
+                    '''
+                }
             }
         }
     }
