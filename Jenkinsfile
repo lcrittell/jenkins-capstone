@@ -9,16 +9,8 @@ pipeline {
     }
 
     stages {
-        stage('Stage one') {
-            steps {
-                sh '''
-                    echo "Hello Jenkins"
-                    echo "My variable: $MY_VAR"
-                '''
-            }
-        }
 
-        stage('Build Docker image') {
+        stage('Build Staging image') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'my-quay', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME')]) {
                     sh '''
@@ -31,17 +23,49 @@ pipeline {
             }
         }
 
-        stage('Deploy to local docker') {
+        stage('Pre Staging Tests') {
+            parallel {
+                stage('Testing') {
+                    steps {
+                        sh '''
+                            echo "Testing..."
+                        '''
+                    }
+                }
+
+                stage('Linting') {
+                    steps {
+                        sh '''
+                            echo "Linting code..."
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Deploy Staging') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'my-quay', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME')]) {
                     sh '''
-                        echo "$QUAY_PASSWORD" | docker login quay.io -u "$QUAY_USERNAME" --password-stdin
-                        docker pull quay.io/$QUAY_USERNAME/$APP_NAME:$APP_VERSION
-                        docker stop my-python-app || true
-                        docker rm my-python-app || true
-                        docker run -d --name my-python-app -p 8000:8000 quay.io/$QUAY_USERNAME/$APP_NAME:$APP_VERSION
+                        echo "deploy staging!"
                     '''
                 }
+            }
+        }
+
+        stage('Approval') {
+            steps {
+                timeout(time: 1, unit: 'HOURS') {
+                    input message: 'Ready to deploy?' ok: 'Yes I am sure I want to deploy'
+                }
+            }
+        }
+
+        stage('Deploy Production') {
+            steps {
+                sh '''
+                    echo "deploy production!"
+                '''
             }
         }
     }
