@@ -60,7 +60,19 @@ pipeline {
         stage('Approval') {
             steps {
                 timeout(time: 1, unit: 'HOURS') {
-                    input message: "Review deployment at: ${env.STAGING_URL}", ok: 'Yes I am sure I want to deploy'
+                    input(
+                        message: """
+                        <h3>Review Staging Deployment</h3>
+                        <p>
+                            Please review the application before deploying to prod
+                        </p>
+                        <p>
+                            <a href="${env.STAGING_URL}" target="_blank">
+                                Open Staging Application
+                            </a>
+                        </p>
+                        """, 
+                        ok: 'Yes I am sure I want to deploy')
                 }
             }
         }
