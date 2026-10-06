@@ -48,6 +48,9 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: 'my-quay', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME')]) {
                     sh '''
                         echo "deploy staging!"
+                        def stagingUrl = "https://google.com"
+                        env.STAGING_URL = stagingUrl
+                        echo "Staging deployed to: ${env.STAGING_URL}"
                     '''
                 }
             }
@@ -56,7 +59,7 @@ pipeline {
         stage('Approval') {
             steps {
                 timeout(time: 1, unit: 'HOURS') {
-                    input message: 'Ready to deploy?', ok: 'Yes I am sure I want to deploy'
+                    input message: "Review deployment at: ${env.STAGING_URL}", ok: 'Yes I am sure I want to deploy'
                 }
             }
         }
