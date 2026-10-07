@@ -2,7 +2,7 @@
     "requiresCompatibilities": [
         "FARGATE"
     ],
-    "family": "JenkinsCapstone-TaskDefinition-Prod",
+    "family": "JenkinsCapstone-TaskDefinition-Staging",
     "containerDefinitions": [
         {
             "name": "JenkinsCapstone",

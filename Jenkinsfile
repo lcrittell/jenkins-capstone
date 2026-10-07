@@ -6,6 +6,9 @@ pipeline {
         MY_VAR = "My variable"
         APP_NAME = "my-python-app"
         APP_VERSION = "$BUILD_ID"
+        AWS_ECS_CLUSTER = 'JenkinsCapstone-Cluster-Prod'
+        AWS_ECS_SERVICE_PROD = 'JenkinsCapstone-Service-Prod'
+        AWS_ECS_SERVICE_STAGING = 'JenkinsCapstone-Service-Staging'
     }
 
     stages {
@@ -52,23 +55,29 @@ pipeline {
                 }
             }
             steps {
-                withCredentials([usernamePassword(credentialsId: 'my-quay', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME')]) {
-                    sh '''
-                        aws --version
-                        sed -i "s/#APP_VERSION/$APP_VERSION/g" aws/task-definition-prod.json
-                        sed -i "s/#QUAY_USERNAME#/$QUAY_USERNAME/g" aws/task-definition-prod.json
-                        sed -i "s/#APP_NAME#/$APP_NAME/g" aws/task-definition-prod.json
-                        cat aws/task-definition-prod.json
-                    '''
-                    script {
-                        env.STAGING_URL = sh(
-                            script: '''
-                                echo "https://google.com"
-                            ''',
-                            returnStdout: true
-                        ).trim()
-                        
-                        echo "Staging URL: ${env.STAGING_URL}"
+                withCredentials([usernamePassword(credentialsId: 'my-aws', passwordVariable: 'AWS_SECRET_ACCESS_KEY', usernameVariable: 'AWS_ACCESS_KEY_ID')]) {
+                    withCredentials([usernamePassword(credentialsId: 'my-quay', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME')]) {
+                        sh '''
+                            aws --version
+                            sed -i "s/#APP_VERSION#/$APP_VERSION/g" aws/task-definition-staging.json
+                            sed -i "s/#QUAY_USERNAME#/$QUAY_USERNAME/g" aws/task-definition-staging.json
+                            sed -i "s/#APP_NAME#/$APP_NAME/g" aws/task-definition-staging.json
+                            cat aws/task-definition-staging.json
+                            LATEST_TD_REVISION=$(aws ecs register-task-definition --cli-input-json file://aws/task-definition-staging.json | jq '.taskDefinition.revision')
+                            echo $LATEST_TD_REVISION
+                            aws ecs update-service --cluster $AWS_ECS_CLUSTER --services $AWS_ECS_SERVICE_STAGING --task-definition JenkinsCapstone-TaskDefinition-Staging:$LATEST_TD_REVISION
+                            aws ecs wait services-stable --cluster $AWS_ECS_CLUSTER --services $AWS_ECS_SERVICE_STAGING
+                        '''
+                        script {
+                            env.STAGING_URL = sh(
+                                script: '''
+                                    echo "https://google.com"
+                                ''',
+                                returnStdout: true
+                            ).trim()
+                            
+                            echo "Staging URL: ${env.STAGING_URL}"
+                        }
                     }
                 }
             }
