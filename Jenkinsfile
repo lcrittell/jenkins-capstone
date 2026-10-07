@@ -6,7 +6,7 @@ pipeline {
         MY_VAR = "My variable"
         APP_NAME = "my-python-app"
         APP_VERSION = "$BUILD_ID"
-        AWS_ECS_CLUSTER = 'JenkinsCapstone-Cluster-Prod'
+        AWS_ECS_CLUSTER = 'JenkinsCapstone-Cluster'
         AWS_ECS_SERVICE_PROD = 'JenkinsCapstone-Service-Prod'
         AWS_ECS_SERVICE_STAGING = 'JenkinsCapstone-Service-Staging'
     }
