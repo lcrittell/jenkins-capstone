@@ -58,6 +58,7 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: 'my-aws', passwordVariable: 'AWS_SECRET_ACCESS_KEY', usernameVariable: 'AWS_ACCESS_KEY_ID')]) {
                     withCredentials([usernamePassword(credentialsId: 'my-quay', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME')]) {
                         sh '''
+                            aws configure set region us-east-2
                             aws --version
                             sed -i "s/#APP_VERSION#/$APP_VERSION/g" aws/task-definition-staging.json
                             sed -i "s/#QUAY_USERNAME#/$QUAY_USERNAME/g" aws/task-definition-staging.json
