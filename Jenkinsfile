@@ -65,8 +65,8 @@ pipeline {
                             cat aws/task-definition-staging.json
                             LATEST_TD_REVISION=$(aws ecs register-task-definition --cli-input-json file://aws/task-definition-staging.json | jq '.taskDefinition.revision')
                             echo $LATEST_TD_REVISION
-                            aws ecs update-service --cluster $AWS_ECS_CLUSTER --services $AWS_ECS_SERVICE_STAGING --task-definition JenkinsCapstone-TaskDefinition-Staging:$LATEST_TD_REVISION
-                            aws ecs wait services-stable --cluster $AWS_ECS_CLUSTER --services $AWS_ECS_SERVICE_STAGING
+                            aws ecs update-service --cluster $AWS_ECS_CLUSTER --service $AWS_ECS_SERVICE_STAGING --task-definition JenkinsCapstone-TaskDefinition-Staging:$LATEST_TD_REVISION
+                            aws ecs wait services-stable --cluster $AWS_ECS_CLUSTER --service $AWS_ECS_SERVICE_STAGING
                         '''
                         script {
                             env.STAGING_URL = sh(
