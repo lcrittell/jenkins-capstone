@@ -52,18 +52,24 @@ pipeline {
                 }
             }
             steps {
-                sh '''
-                    aws --version
-                '''
-                script {
-                    env.STAGING_URL = sh(
-                        script: '''
-                            echo "https://google.com"
-                        ''',
-                        returnStdout: true
-                    ).trim()
-                    
-                    echo "Staging URL: ${env.STAGING_URL}"
+                withCredentials([usernamePassword(credentialsId: 'my-quay', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME')]) {
+                    sh '''
+                        aws --version
+                        sed -i "s/#APP_VERSION/$APP_VERSION/g" aws/task-definition-prod.json
+                        sed -i "s/#QUAY_USERNAME#/$QUAY_USERNAME/g" aws/task-definition-prod.json
+                        sed -i "s/#APP_NAME#/$APP_NAME/g" aws/task-definition-prod.json
+                        cat aws/task-definition-prod.json
+                    '''
+                    script {
+                        env.STAGING_URL = sh(
+                            script: '''
+                                echo "https://google.com"
+                            ''',
+                            returnStdout: true
+                        ).trim()
+                        
+                        echo "Staging URL: ${env.STAGING_URL}"
+                    }
                 }
             }
         }
