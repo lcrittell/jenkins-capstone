@@ -44,7 +44,17 @@ pipeline {
         }
 
         stage('Deploy Staging') {
+            agent {
+                docker {
+                    image 'amazon/aws-cli'
+                    reuseNode true
+                    args "-u root --entrypoint=''"
+                }
+            }
             steps {
+                sh '''
+                    aws --version
+                '''
                 script {
                     env.STAGING_URL = sh(
                         script: '''
@@ -52,6 +62,7 @@ pipeline {
                         ''',
                         returnStdout: true
                     ).trim()
+                    
                     echo "Staging URL: ${env.STAGING_URL}"
                 }
             }
@@ -59,18 +70,6 @@ pipeline {
 
         stage('Approval') {
             steps {
-                script {
-                    currentBuild.description = """
-                        <h3>Review Staging Deployment</h3>
-                        <p>Please review the application before deploying to prod.</p>
-                        <p>
-                            <a href="${env.STAGING_URL}" target="_blank">
-                                Open Staging Application
-                            </a>
-                        </p>
-                    """
-                }
-
                 timeout(time: 1, unit: 'HOURS') {
                     input(
                         message: """
@@ -85,10 +84,17 @@ pipeline {
             }
         }
 
-        stage('Deploy Production') {
+        stage('Deploy to AWS') {
+            agent {
+                docker {
+                    image 'amazon/aws-cli'
+                    reuseNode true
+                    args "-u root --entrypoint=''"
+                }
+            }
             steps {
                 sh '''
-                    echo "deploy production!"
+                    aws --version
                 '''
             }
         }

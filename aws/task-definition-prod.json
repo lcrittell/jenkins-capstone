@@ -1,0 +1,25 @@
+{
+    "requiresCompatibilities": [
+        "FARGATE"
+    ],
+    "family": "JenkinsCapstone-TaskDefinition-Prod",
+    "containerDefinitions": [
+        {
+            "name": "JenkinsCapstone",
+            "image": "quay.io/#QUAY_USERNAME#/#APP_NAME#:#APP_VERSION#",
+            "portMappings": [{
+                "name": "nginx-80-tip",
+                "containerPort": 8000,
+                "hostPort": 8000,
+                "protocol": "tcp",
+                "appProtocol": "http"
+            }],
+            "essential": true
+        }
+    ],
+    "volumes": [],
+    "networkMode": "awsvpc",
+    "memory": "512",
+    "cpu": "256",
+    "executionRoleArn": "arn:aws:iam::916981869767:role/ecsTaskExecutionRole"
+}
