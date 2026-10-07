@@ -155,7 +155,7 @@ pipeline {
                         docker push quay.io/$QUAY_USERNAME/$APP_NAME:prod-$APP_VERSION
                         docker tag quay.io/$QUAY_USERNAME/$APP_NAME:$APP_VERSION quay.io/$QUAY_USERNAME/$APP_NAME:stable
                         docker push quay.io/$QUAY_USERNAME/$APP_NAME:stable
-                        curl -s "https://quay.io/api/v1/repository/$QUAY_USERNAME/$APP_NAME/tag/" | jq -r '.tags[].name' | sort
+                        curl -s "https://quay.io/api/v1/repository/$QUAY_USERNAME/$APP_NAME/tag/" | jq -r '.tags[].name' | sort -u
                         docker logout quay.io
                     '''
                 }
