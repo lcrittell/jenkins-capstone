@@ -72,7 +72,25 @@ pipeline {
                         script {
                             env.STAGING_URL = sh(
                                 script: '''
-                                    echo "https://google.com"
+                                    TASK_ARN=$(aws ecs list-tasks \
+                                        --cluster "$AWS_ECS_CLUSTER" \
+                                        --service-name "$AWS_ECS_SERVICE_STAGING" \
+                                        --desired-status RUNNING \
+                                        --query 'taskArns[0]' \
+                                        --output text)
+
+                                    ENI_ID=$(aws ecs describe-tasks \
+                                        --cluster "$AWS_ECS_CLUSTER" \
+                                        --tasks "$TASK_ARN" \
+                                        --query 'tasks[0].attachments[0].details[?name==`networkInterfaceId`].value' \
+                                        --output text)
+
+                                    PUBLIC_IP=$(aws ec2 describe-network-interfaces \
+                                        --network-interface-ids "$ENI_ID" \
+                                        --query 'NetworkInterfaces[0].Association.PublicIp' \
+                                        --output text)
+
+                                    echo "http://$PUBLIC_IP:8000"
                                 ''',
                                 returnStdout: true
                             ).trim()
