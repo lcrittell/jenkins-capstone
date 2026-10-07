@@ -1,0 +1,115 @@
+pipeline {
+    agent any
+
+    environment {
+        APP_NAME = "my-python-app"
+        QUAY_ORG = "jenkinscapstone"
+        AWS_ECS_CLUSTER = 'JenkinsCapstone-Cluster'
+        AWS_ECS_SERVICE_PROD = 'JenkinsCapstone-Service-Prod'
+    }
+
+    stages {
+        stage('Rollback Tags') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'my-quay', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME')]) {
+                    sh '''
+                        echo "$QUAY_PASSWORD" | docker login quay.io -u "$QUAY_USERNAME" --password-stdin
+                    CURRENT_PROD=$(curl -s "https://quay.io/api/v1/repository/$QUAY_ORG/$APP_NAME/tag/?onlyActiveTags=true" \
+                            | jq -r '.tags[].name | select(startswith("prod-"))' \
+                            | sort -Vr \
+                            | head -n 1)
+                        echo "Current prod tag: $CURRENT_PROD"
+                        echo "Current prod tag will be deleted"
+                        ROLLBACK_PROD=$(curl -s "https://quay.io/api/v1/repository/$QUAY_ORG/$APP_NAME/tag/?onlyActiveTags=true" \
+                            | jq -r '.tags[].name | select(startswith("prod-"))' \
+                            | sort -Vr \
+                            | head -n 2 | tail -n 1)
+                        echo "Rollback prod tag: $ROLLBACK_PROD"
+                        echo "Rollback prod tag will be promoted to stable"
+                        docker logout quay.io
+                    '''
+                }
+                timeout(time: 1, unit: 'HOURS') {
+                    input(
+                        message: """
+                        Review the logs to see what will be deleted
+                        """, 
+                        ok: 'These rollback settings are ok')
+                }
+                withCredentials([
+                    string(
+                        credentialsId: 'quay-api-token',
+                        variable: 'QUAY_API_TOKEN'
+                    ),
+                    usernamePassword(credentialsId: 'my-quay', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME')
+                ]) {
+                    sh '''
+                        echo "$QUAY_PASSWORD" | docker login quay.io -u "$QUAY_USERNAME" --password-stdin
+                        CURRENT_PROD=$(curl -s "https://quay.io/api/v1/repository/$QUAY_ORG/$APP_NAME/tag/" \
+                                | jq -r '.tags[].name | select(startswith("prod-"))' \
+                                | sort -Vr \
+                                | head -n 1)
+                            echo "Current prod tag: $CURRENT_PROD"
+                            ROLLBACK_PROD=$(curl -s "https://quay.io/api/v1/repository/$QUAY_ORG/$APP_NAME/tag/" \
+                                | jq -r '.tags[].name | select(startswith("prod-"))' \
+                                | sort -Vr \
+                                | head -n 2 | tail -n 1)
+                        echo "Rollback prod tag: $ROLLBACK_PROD"
+
+                        echo "Deleting $CURRENT_PROD..."
+
+                        curl -f -X DELETE \
+                            -H "Authorization: Bearer $QUAY_API_TOKEN" \
+                            "https://quay.io/api/v1/repository/$QUAY_ORG/$APP_NAME/tag/$CURRENT_PROD"
+
+                        echo "$CURRENT_PROD deleted."
+
+                        echo "Moving stable to $ROLLBACK_PROD"
+                        docker pull quay.io/$QUAY_ORG/$APP_NAME:$ROLLBACK_PROD
+
+                        docker tag \
+                            quay.io/$QUAY_ORG/$APP_NAME:$ROLLBACK_PROD \
+                            quay.io/$QUAY_ORG/$APP_NAME:stable
+
+                        docker push \
+                            quay.io/$QUAY_ORG/$APP_NAME:stable
+                        docker logout quay.io
+                    '''
+                    script {
+                        env.ROLLBACK_PROD_NO = sh(
+                            script: '''
+                                echo "$ROLLBACK_PROD" | sed 's/^prod-//'
+                            ''',
+                            returnStdout: true
+                        ).trim()
+                    }
+                }
+            }
+        }
+        stage('Rollback AWS') {
+            agent {
+                docker {
+                    image 'amazon/aws-cli'
+                    reuseNode true
+                    args "-u root --entrypoint=''"
+                }
+            }
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'my-aws', passwordVariable: 'AWS_SECRET_ACCESS_KEY', usernameVariable: 'AWS_ACCESS_KEY_ID')]) {
+                    withCredentials([usernamePassword(credentialsId: 'my-quay', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME')]) {
+                        sh '''
+                            aws configure set region us-east-2
+                            pwd
+                            sed -i "s/#APP_VERSION#/$ROLLBACK_PROD_NO/g" aws/task-definition-staging.json
+                            sed -i "s/#QUAY_USERNAME#/$QUAY_ORG/g" aws/task-definition-staging.json
+                            sed -i "s/#APP_NAME#/$APP_NAME/g" aws/task-definition-staging.json
+                            LATEST_TD_REVISION=$(aws ecs register-task-definition --cli-input-json file://aws/task-definition-prod.json | jq '.taskDefinition.revision')
+                            aws ecs update-service --cluster $AWS_ECS_CLUSTER --service $AWS_ECS_SERVICE_PROD --task-definition JenkinsCapstone-TaskDefinition-Prod:$LATEST_TD_REVISION
+                            aws ecs wait services-stable --cluster $AWS_ECS_CLUSTER --service $AWS_ECS_SERVICE_PROD
+                        '''
+                    }
+                }
+            }
+        }
+    }
+}

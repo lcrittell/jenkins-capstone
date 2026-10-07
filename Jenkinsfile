@@ -63,7 +63,6 @@ pipeline {
                             sed -i "s/#APP_VERSION#/$APP_VERSION/g" aws/task-definition-staging.json
                             sed -i "s/#QUAY_USERNAME#/$QUAY_ORG/g" aws/task-definition-staging.json
                             sed -i "s/#APP_NAME#/$APP_NAME/g" aws/task-definition-staging.json
-                            cat aws/task-definition-staging.json
                             LATEST_TD_REVISION=$(aws ecs register-task-definition --cli-input-json file://aws/task-definition-staging.json | jq '.taskDefinition.revision')
                             echo $LATEST_TD_REVISION
                             aws ecs update-service --cluster $AWS_ECS_CLUSTER --service $AWS_ECS_SERVICE_STAGING --task-definition JenkinsCapstone-TaskDefinition-Staging:$LATEST_TD_REVISION
@@ -135,9 +134,7 @@ pipeline {
                             sed -i "s/#APP_VERSION#/$APP_VERSION/g" aws/task-definition-prod.json
                             sed -i "s/#QUAY_USERNAME#/$QUAY_ORG/g" aws/task-definition-prod.json
                             sed -i "s/#APP_NAME#/$APP_NAME/g" aws/task-definition-prod.json
-                            cat aws/task-definition-prod.json
                             LATEST_TD_REVISION=$(aws ecs register-task-definition --cli-input-json file://aws/task-definition-prod.json | jq '.taskDefinition.revision')
-                            echo $LATEST_TD_REVISION
                             aws ecs update-service --cluster $AWS_ECS_CLUSTER --service $AWS_ECS_SERVICE_PROD --task-definition JenkinsCapstone-TaskDefinition-Prod:$LATEST_TD_REVISION
                             aws ecs wait services-stable --cluster $AWS_ECS_CLUSTER --service $AWS_ECS_SERVICE_PROD
                         '''
