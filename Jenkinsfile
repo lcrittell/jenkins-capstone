@@ -3,7 +3,6 @@ pipeline {
     agent any
 
     environment {
-        MY_VAR = "My variable"
         APP_NAME = "my-python-app"
         APP_VERSION = "$BUILD_ID"
         AWS_ECS_CLUSTER = 'JenkinsCapstone-Cluster'
