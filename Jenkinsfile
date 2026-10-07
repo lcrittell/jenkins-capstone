@@ -139,7 +139,7 @@ pipeline {
                         echo "$QUAY_PASSWORD" | docker login quay.io -u "$QUAY_USERNAME" --password-stdin
                         docker pull quay.io/$QUAY_USERNAME/$APP_NAME:$APP_VERSION
                         docker tag quay.io/$QUAY_USERNAME/$APP_NAME:$APP_VERSION quay.io/$QUAY_USERNAME/$APP_NAME:prod-$APP_VERSION
-                        docker push quay.io/$QUAY_USERNAME/$APP_NAME:prod-$APP_VERISON
+                        docker push quay.io/$QUAY_USERNAME/$APP_NAME:prod-$APP_VERSION
                         docker tag quay.io/$QUAY_USERNAME/$APP_NAME:$APP_VERSION quay.io/$QUAY_USERNAME/$APP_NAME:stable
                         docker push quay.io/$QUAY_USERNAME/$APP_NAME:stable
                         docker logout quay.io
