@@ -11,6 +11,20 @@ pipeline {
     stages {
         stage('Rollback Tags') {
             steps {
+                script {
+                    env.ROLLBACK_PROD = sh(
+                        script: '''
+                            curl -s "https://quay.io/api/v1/repository/$QUAY_ORG/$APP_NAME/tag/?onlyActiveTags=true" \
+                                | jq -r '.tags[].name | select(startswith("prod-"))' \
+                                | sort -Vr \
+                                | head -n 2 \
+                                | tail -n 1
+                        ''',
+                        returnStdout: true
+                    ).trim()
+
+                    env.ROLLBACK_PROD_NO = env.ROLLBACK_PROD.replace('prod-', '')
+                }
                 withCredentials([usernamePassword(credentialsId: 'my-quay', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME')]) {
                     sh '''
                         echo "$QUAY_PASSWORD" | docker login quay.io -u "$QUAY_USERNAME" --password-stdin
@@ -20,10 +34,6 @@ pipeline {
                             | head -n 1)
                         echo "Current prod tag: $CURRENT_PROD"
                         echo "Current prod tag will be deleted"
-                        ROLLBACK_PROD=$(curl -s "https://quay.io/api/v1/repository/$QUAY_ORG/$APP_NAME/tag/?onlyActiveTags=true" \
-                            | jq -r '.tags[].name | select(startswith("prod-"))' \
-                            | sort -Vr \
-                            | head -n 2 | tail -n 1)
                         echo "Rollback prod tag: $ROLLBACK_PROD"
                         echo "Rollback prod tag will be promoted to stable"
                         docker logout quay.io
@@ -49,11 +59,7 @@ pipeline {
                                 | jq -r '.tags[].name | select(startswith("prod-"))' \
                                 | sort -Vr \
                                 | head -n 1)
-                            echo "Current prod tag: $CURRENT_PROD"
-                            ROLLBACK_PROD=$(curl -s "https://quay.io/api/v1/repository/$QUAY_ORG/$APP_NAME/tag/?onlyActiveTags=true" \
-                                | jq -r '.tags[].name | select(startswith("prod-"))' \
-                                | sort -Vr \
-                                | head -n 2 | tail -n 1)
+                        echo "Current prod tag: $CURRENT_PROD"
                         echo "Rollback prod tag: $ROLLBACK_PROD"
 
                         echo "Deleting $CURRENT_PROD..."
@@ -75,14 +81,6 @@ pipeline {
                             quay.io/$QUAY_ORG/$APP_NAME:stable
                         docker logout quay.io
                     '''
-                    script {
-                        env.ROLLBACK_PROD_NO = sh(
-                            script: '''
-                                echo "$ROLLBACK_PROD" | sed 's/^prod-//'
-                            ''',
-                            returnStdout: true
-                        ).trim()
-                    }
                 }
             }
         }
@@ -100,9 +98,9 @@ pipeline {
                         sh '''
                             aws configure set region us-east-2
                             pwd
-                            sed -i "s/#APP_VERSION#/$ROLLBACK_PROD_NO/g" aws/task-definition-staging.json
-                            sed -i "s/#QUAY_USERNAME#/$QUAY_ORG/g" aws/task-definition-staging.json
-                            sed -i "s/#APP_NAME#/$APP_NAME/g" aws/task-definition-staging.json
+                            sed -i "s/#APP_VERSION#/$ROLLBACK_PROD_NO/g" aws/task-definition-prod.json
+                            sed -i "s/#QUAY_USERNAME#/$QUAY_ORG/g" aws/task-definition-prod.json
+                            sed -i "s/#APP_NAME#/$APP_NAME/g" aws/task-definition-prod.json
                             LATEST_TD_REVISION=$(aws ecs register-task-definition --cli-input-json file://aws/task-definition-prod.json | jq '.taskDefinition.revision')
                             aws ecs update-service --cluster $AWS_ECS_CLUSTER --service $AWS_ECS_SERVICE_PROD --task-definition JenkinsCapstone-TaskDefinition-Prod:$LATEST_TD_REVISION
                             aws ecs wait services-stable --cluster $AWS_ECS_CLUSTER --service $AWS_ECS_SERVICE_PROD
