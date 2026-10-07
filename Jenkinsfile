@@ -127,6 +127,13 @@ pipeline {
                 }
             }
             steps {
+                sh '''
+                    aws --version
+                '''
+            }
+        }
+        stage('Tag Prod') {
+            steps {
                 withCredentials([usernamePassword(credentialsId: 'my-quay', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME')]) {
                     sh '''
                         echo "$QUAY_PASSWORD" | docker login quay.io -u "$QUAY_USERNAME" --password-stdin
@@ -138,9 +145,6 @@ pipeline {
                         docker logout quay.io
                     '''
                 }
-                sh '''
-                    aws --version
-                '''
             }
         }
     }
