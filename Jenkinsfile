@@ -127,9 +127,22 @@ pipeline {
                 }
             }
             steps {
-                sh '''
-                    aws --version
-                '''
+                withCredentials([usernamePassword(credentialsId: 'my-aws', passwordVariable: 'AWS_SECRET_ACCESS_KEY', usernameVariable: 'AWS_ACCESS_KEY_ID')]) {
+                    withCredentials([usernamePassword(credentialsId: 'my-quay', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME')]) {
+                        sh '''
+                            aws configure set region us-east-2
+                            aws --version
+                            sed -i "s/#APP_VERSION#/$APP_VERSION/g" aws/task-definition-prod.json
+                            sed -i "s/#QUAY_USERNAME#/$QUAY_USERNAME/g" aws/task-definition-prod.json
+                            sed -i "s/#APP_NAME#/$APP_NAME/g" aws/task-definition-prod.json
+                            cat aws/task-definition-prod.json
+                            LATEST_TD_REVISION=$(aws ecs register-task-definition --cli-input-json file://aws/task-definition-prod.json | jq '.taskDefinition.revision')
+                            echo $LATEST_TD_REVISION
+                            aws ecs update-service --cluster $AWS_ECS_CLUSTER --service $AWS_ECS_SERVICE_PROD --task-definition JenkinsCapstone-TaskDefinition-Prod:$LATEST_TD_REVISION
+                            aws ecs wait services-stable --cluster $AWS_ECS_CLUSTER --service $AWS_ECS_SERVICE_PROD
+                        '''
+                    }
+                }
             }
         }
         stage('Tag Prod') {
@@ -142,6 +155,7 @@ pipeline {
                         docker push quay.io/$QUAY_USERNAME/$APP_NAME:prod-$APP_VERSION
                         docker tag quay.io/$QUAY_USERNAME/$APP_NAME:$APP_VERSION quay.io/$QUAY_USERNAME/$APP_NAME:stable
                         docker push quay.io/$QUAY_USERNAME/$APP_NAME:stable
+                        curl -s "https://quay.io/api/v1/repository/$QUAY_USERNAME/$APP_NAME/tag/" | jq -r '.tags[].name' | sort
                         docker logout quay.io
                     '''
                 }
