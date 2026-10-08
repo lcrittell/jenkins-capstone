@@ -19,7 +19,7 @@ def test_application_health():
     body = response.read().decode("utf-8")
 
     assert response.status == 200
-    assert body == "unhealthy"
+    assert body == "healthy"
 
     server.shutdown()
     server.server_close()
