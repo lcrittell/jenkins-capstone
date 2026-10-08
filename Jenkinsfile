@@ -39,7 +39,7 @@ pipeline {
                     steps {
                         sh '''
                             pip install pytest
-                            pytest tests/
+                            PYTHONPATH=. pytest tests/
                         '''
                     }
                 }
