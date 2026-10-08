@@ -37,10 +37,36 @@ pipeline {
                 }
 
                 stage('Linting') {
-                    steps {
-                        sh '''
-                            echo "Linting code..."
-                        '''
+                    parallel {
+                        stage('Python Lint') {
+                            agent {
+                                docker {
+                                    image 'python:3.12-slim'
+                                    reuseNode true
+                                }
+                            }
+                            steps {
+                                sh '''
+                                    pip install ruff
+                                    ruff check app.py
+                                '''
+                            }
+                        }
+
+                        stage('HTML Lint') {
+                            agent {
+                                docker {
+                                    image 'node:22-alpine'
+                                    reuseNode true
+                                }
+                            }
+                            steps {
+                                sh '''
+                                    npm install -g htmlhint
+                                    htmlhint index.html
+                                '''
+                            }
+                        }
                     }
                 }
             }
