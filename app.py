@@ -1,7 +1,6 @@
 import os
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 
-
 HOST = "0.0.0.0"
 PORT = int(os.environ.get("PORT", "8000"))
 
