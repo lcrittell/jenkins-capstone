@@ -39,8 +39,13 @@ pipeline {
                     steps {
                         sh '''
                             pip install pytest
-                            PYTHONPATH=. pytest tests/
+                            PYTHONPATH=. pytest tests/ --junitxml=test-results.xml
                         '''
+                    }
+                    post {
+                        always {
+                            junit 'test-results.xml'
+                        }
                     }
                 }
 
