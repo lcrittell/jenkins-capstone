@@ -84,6 +84,15 @@ pipeline {
                         sh '''
                             aws configure set region us-east-2
                             aws --version
+                            aws ecs update-service \
+                                --region us-east-2 \
+                                --cluster JenkinsCapstone-Cluster \
+                                --service JenkinsCapstone-Service-Prod \
+                                --load-balancers targetGroupArn=arn:aws:elasticloadbalancing:us-east-2:916981869767:targetgroup/jenkins-capstone-prod-tg/d7f4f15f29ea3560,containerName=JenkinsCapstone,containerPort=8000
+                            aws ecs wait services-stable \
+                                --region us-east-2 \
+                                --cluster JenkinsCapstone-Cluster \
+                                --service JenkinsCapstone-Service-Prod
                             sed -i "s/#APP_VERSION#/$APP_VERSION/g" aws/task-definition-staging.json
                             sed -i "s/#QUAY_USERNAME#/$QUAY_ORG/g" aws/task-definition-staging.json
                             sed -i "s/#APP_NAME#/$APP_NAME/g" aws/task-definition-staging.json
