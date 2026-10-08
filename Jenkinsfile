@@ -145,6 +145,32 @@ pipeline {
             }
         }
 
+        stage('Staging E2E Testing') {
+            agent {
+                docker {
+                    image 'mcr.microsoft.com/playwright:v1.39.0-jammy'
+                    reuseNode true
+                }
+            }
+
+            environment {
+                BASE_URL = "$STAGING_URL"
+            }
+
+            steps {
+                sh '''
+                    npx playwright test
+                '''
+            }
+
+            post {
+                always {
+                    junit 'playwright-results.xml'
+                    archiveArtifacts artifacts: 'playwright-report/**', allowEmptyArchive: true
+                }
+            }
+        }
+
         stage('Approval') {
             steps {
                 timeout(time: 1, unit: 'HOURS') {
