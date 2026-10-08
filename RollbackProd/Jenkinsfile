@@ -48,8 +48,9 @@ pipeline {
                 timeout(time: 1, unit: 'HOURS') {
                     input(
                         message: """
-                        Rollback prod: $ROLLBACK_PROD
-                        Current prod: $CURRENT_PROD
+                        Rollback Prod: $ROLLBACK_PROD
+                        Current Prod: $CURRENT_PROD
+                        Production will be rolled back to the Rollback Prod version. The Current Prod version will be removed (it will be accessible, just not tagged as production ready)
                         """, 
                         ok: 'These rollback settings are ok')
                 }
