@@ -25,13 +25,19 @@ pipeline {
 
                     env.ROLLBACK_PROD_NO = env.ROLLBACK_PROD.replace('prod-', '')
                 }
+                script {
+                    env.CURRENT_PROD = sh(
+                        script: '''
+                            curl -s "https://quay.io/api/v1/repository/$QUAY_ORG/$APP_NAME/tag/?onlyActiveTags=true" \
+                                | jq -r '.tags[].name | select(startswith("prod-"))' \
+                                | sort -Vr \
+                                | head -n 1
+                        ''',
+                        returnStdout: true
+                    ).trim()
+                }
                 withCredentials([usernamePassword(credentialsId: 'my-quay', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME')]) {
                     sh '''
-                        echo "$QUAY_PASSWORD" | docker login quay.io -u "$QUAY_USERNAME" --password-stdin
-                    CURRENT_PROD=$(curl -s "https://quay.io/api/v1/repository/$QUAY_ORG/$APP_NAME/tag/?onlyActiveTags=true" \
-                            | jq -r '.tags[].name | select(startswith("prod-"))' \
-                            | sort -Vr \
-                            | head -n 1)
                         echo "Current prod tag: $CURRENT_PROD"
                         echo "Current prod tag will be deleted"
                         echo "Rollback prod tag: $ROLLBACK_PROD"
@@ -42,7 +48,8 @@ pipeline {
                 timeout(time: 1, unit: 'HOURS') {
                     input(
                         message: """
-                        Review the logs to see what will be deleted
+                        Rollback prod: $ROLLBACK_PROD
+                        Current prod: $CURRENT_PROD
                         """, 
                         ok: 'These rollback settings are ok')
                 }
