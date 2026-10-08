@@ -13,7 +13,7 @@ pipeline {
 
     stages {
 
-        stage('Build Staging image') {
+        stage('Build Staging Image') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'my-quay', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME')]) {
                     sh '''
@@ -63,10 +63,17 @@ pipeline {
                             sed -i "s/#APP_VERSION#/$APP_VERSION/g" aws/task-definition-staging.json
                             sed -i "s/#QUAY_USERNAME#/$QUAY_ORG/g" aws/task-definition-staging.json
                             sed -i "s/#APP_NAME#/$APP_NAME/g" aws/task-definition-staging.json
+                            echo "=== Registering task definition ==="
+                            date
                             LATEST_TD_REVISION=$(aws ecs register-task-definition --cli-input-json file://aws/task-definition-staging.json | jq '.taskDefinition.revision')
-                            echo $LATEST_TD_REVISION
+                            echo "=== Updating ECS service ==="
+                            date
                             aws ecs update-service --cluster $AWS_ECS_CLUSTER --service $AWS_ECS_SERVICE_STAGING --task-definition JenkinsCapstone-TaskDefinition-Staging:$LATEST_TD_REVISION
+                            echo "=== Waiting for ECS service to become stable ==="
+                            date
                             aws ecs wait services-stable --cluster $AWS_ECS_CLUSTER --service $AWS_ECS_SERVICE_STAGING
+                            echo "=== ECS service is stable ==="
+                            date
                         '''
                         script {
                             env.STAGING_URL = sh(
