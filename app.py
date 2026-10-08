@@ -1,11 +1,16 @@
 import os
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 
+
 HOST = "0.0.0.0"
 PORT = int(os.environ.get("PORT", "8000"))
 
-server = HTTPServer((HOST, PORT), SimpleHTTPRequestHandler)
 
-print(f"Server running on port {PORT}")
+def create_server():
+    return HTTPServer((HOST, PORT), SimpleHTTPRequestHandler)
 
-server.serve_forever()
+
+if __name__ == "__main__":
+    server = create_server()
+    print(f"Server running on port {PORT}")
+    server.serve_forever()

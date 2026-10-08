@@ -29,9 +29,17 @@ pipeline {
         stage('Pre Staging Tests') {
             parallel {
                 stage('Testing') {
+                    agent {
+                        docker {
+                            image 'python:3.12-slim'
+                            reuseNode true
+                            args '-u root'
+                        }
+                    }
                     steps {
                         sh '''
-                            echo "Testing..."
+                            pip install pytest
+                            pytest tests/
                         '''
                     }
                 }

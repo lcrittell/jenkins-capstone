@@ -63,10 +63,6 @@ pipeline {
                 ]) {
                     sh '''
                         echo "$QUAY_PASSWORD" | docker login quay.io -u "$QUAY_USERNAME" --password-stdin
-                        CURRENT_PROD=$(curl -s "https://quay.io/api/v1/repository/$QUAY_ORG/$APP_NAME/tag/?onlyActiveTags=true" \
-                                | jq -r '.tags[].name | select(startswith("prod-"))' \
-                                | sort -Vr \
-                                | head -n 1)
                         echo "Current prod tag: $CURRENT_PROD"
                         echo "Rollback prod tag: $ROLLBACK_PROD"
 
