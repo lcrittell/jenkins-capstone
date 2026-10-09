@@ -322,8 +322,8 @@ pipeline {
     post {
         success {
             emailext(
-                to: 'lcrittell@515tech.com'
-                subject: "SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
+                to: 'lcrittell@515tech.com',
+                subject: "SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
                 body: """
                     Jenkins pipeline completed successfully.
 
