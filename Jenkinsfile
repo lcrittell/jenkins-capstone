@@ -338,7 +338,7 @@ pipeline {
         }
         failure {
             emailext(
-                to: 'you@example.com',
+                to: 'lcrittell@515tech.com',
                 subject: "FAILURE: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
                 body: """
                     Jenkins pipeline failed.
@@ -358,7 +358,7 @@ pipeline {
         }
         aborted {
             emailext(
-                to: 'you@example.com',
+                to: 'lcrittell@515tech.com',
                 subject: "ABORTED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
                 body: """
                     Jenkins pipeline was aborted.
