@@ -212,7 +212,97 @@ pipeline {
                 }
             }
         }
+
+        stage('Prod E2E Testing') {
+            agent {
+                docker {
+                    image 'mcr.microsoft.com/playwright:v1.64.0-noble'
+                    reuseNode true
+                }
+            }
+
+            environment {
+                BASE_URL = "http://jenkins-capstone-prod-alb-1107757812.us-east-2.elb.amazonaws.com"
+            }
+
+            steps {
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    script {
+                        try {
+                            sh '''
+                                npm ci
+                                npx playwright test
+                            '''
+                        } catch (err) {
+                            env.PROD_E2E_FAILED = 'true'
+                            throw err
+                        }
+                    }
+                }
+            }
+
+            post {
+                always {
+                    junit 'playwright-results.xml'
+                }
+            }
+        }
+
+        stage('Rollback Prod') {
+            when {
+                expression {
+                    env.PROD_E2E_FAILED == 'true'
+                }
+            }
+            agent {
+                docker {
+                    image 'amazon/aws-cli'
+                    reuseNode true
+                    args "-u root --entrypoint=''"
+                }
+            }
+            steps {
+                echo "Prod E2E failed. Starting automatic rollback"
+                script {
+                    env.CURRENT_PROD = sh(
+                        script: '''
+                            curl -s "https://quay.io/api/v1/repository/$QUAY_ORG/$APP_NAME/tag/?onlyActiveTags=true" \
+                                | jq -r '.tags[].name | select(startswith("prod-"))' \
+                                | sort -Vr \
+                                | head -n 1
+                        ''',
+                        returnStdout: true
+                    ).trim()
+                    if (!env.CURRENT_PROD || !env.CURRENT_PROD.startsWith('prod-')) {
+                        error('Rollback aborted: no valid previous production tag was found.')
+                    }
+
+                    env.CURRENT_PROD_NO = env.CURRENT_PROD.replaceFirst('^prod-', '')
+                }
+                echo "Rolling back to $CURRENT_PROD_NO"
+                withCredentials([usernamePassword(credentialsId: 'my-aws', passwordVariable: 'AWS_SECRET_ACCESS_KEY', usernameVariable: 'AWS_ACCESS_KEY_ID')]) {
+                    withCredentials([usernamePassword(credentialsId: 'my-quay', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME')]) {
+                        sh '''
+                            aws configure set region us-east-2
+                            pwd
+                            sed -i "s/#APP_VERSION#/$CURRENT_PROD_NO/g" aws/task-definition-prod.json
+                            sed -i "s/#QUAY_USERNAME#/$QUAY_ORG/g" aws/task-definition-prod.json
+                            sed -i "s/#APP_NAME#/$APP_NAME/g" aws/task-definition-prod.json
+                            LATEST_TD_REVISION=$(aws ecs register-task-definition --cli-input-json file://aws/task-definition-prod.json | jq '.taskDefinition.revision')
+                            aws ecs update-service --cluster $AWS_ECS_CLUSTER --service $AWS_ECS_SERVICE_PROD --task-definition JenkinsCapstone-TaskDefinition-Prod:$LATEST_TD_REVISION
+                            aws ecs wait services-stable --cluster $AWS_ECS_CLUSTER --service $AWS_ECS_SERVICE_PROD
+                        '''
+                    }
+                }
+            }
+        }
+
         stage('Tag Prod') {
+            when {
+                expression {
+                    env.PROD_E2E_FAILED != 'true'
+                }
+            }
             steps {
                 withCredentials([usernamePassword(credentialsId: 'my-quay', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME')]) {
                     sh '''
