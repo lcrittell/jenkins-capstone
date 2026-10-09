@@ -222,7 +222,7 @@ pipeline {
             }
 
             environment {
-                BASE_URL = "http://jenkins-capstone-prod-alb-1107757812.us-east-2.elb.amazonaws.com"
+                BASE_URL = "http://jenkins-capstone-prod-alb-1107757812.us-east-2.elb.amazonaws.com/test-fail"
             }
 
             steps {
