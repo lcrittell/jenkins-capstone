@@ -167,7 +167,6 @@ pipeline {
             post {
                 always {
                     junit 'playwright-results.xml'
-                    archiveArtifacts artifacts: 'playwright-report/**', allowEmptyArchive: true
                 }
             }
         }
