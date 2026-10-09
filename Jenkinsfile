@@ -319,4 +319,58 @@ pipeline {
             }
         }
     }
+    post {
+        success {
+            emailext(
+                to: 'lcrittell@515tech.com'
+                subject: "SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
+                body: """
+                    Jenkins pipeline completed successfully.
+
+                    Job: ${env.JOB_NAME}
+                    Build: #${env.BUILD_NUMBER}
+                    Application version: ${env.APP_VERSION}
+                    Status: SUCCESS
+
+                    Production E2E tests and prod tagging completed.
+                """
+            )
+        }
+        failure {
+            emailext(
+                to: 'you@example.com',
+                subject: "FAILURE: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: """
+                    Jenkins pipeline failed.
+
+                    Job: ${env.JOB_NAME}
+                    Build: #${env.BUILD_NUMBER}
+                    Application version: ${env.APP_VERSION}
+                    Status: FAILURE
+
+                    Check the console output to identify the failed stage.
+                    If production E2E tests failed, the rollback stage may have run.
+
+                    Console output:
+                    ${env.BUILD_URL}console
+                """
+            )
+        }
+        aborted {
+            emailext(
+                to: 'you@example.com',
+                subject: "ABORTED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: """
+                    Jenkins pipeline was aborted.
+
+                    Job: ${env.JOB_NAME}
+                    Build: #${env.BUILD_NUMBER}
+                    Status: ABORTED
+
+                    Build details:
+                    ${env.BUILD_URL}
+                """
+            )
+        } 
+    }
 }
