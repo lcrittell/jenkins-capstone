@@ -2,29 +2,170 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jenkins Capstone</title>
 
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
+            background: linear-gradient(135deg, #eef2ff, #f8fafc);
+            color: #1e293b;
             text-align: center;
-            padding: 50px;
+            padding: 50px 20px;
+            min-height: 100vh;
+            margin: 0;
+            box-sizing: border-box;
+        }
+
+        .card {
+            background: white;
+            max-width: 600px;
+            margin: 60px auto;
+            padding: 40px 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
         }
 
         h1 {
-            color: #333;
+            margin-bottom: 12px;
+            font-size: 2.2rem;
         }
 
         p {
-            color: #666;
+            color: #64748b;
+            line-height: 1.6;
+        }
+
+        .version {
+            display: inline-block;
+            background: #f1f5f9;
+            color: #334155;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-weight: bold;
+            margin: 15px 0 25px;
+        }
+
+        .health-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            border: none;
+            border-radius: 999px;
+            padding: 12px 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            background: #e2e8f0;
+            color: #334155;
+            cursor: default;
+        }
+
+        .health-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #64748b;
+        }
+
+        .healthy {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .healthy .health-dot {
+            background: #16a34a;
+        }
+
+        .unhealthy {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .unhealthy .health-dot {
+            background: #dc2626;
+        }
+
+        .checking {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .checking .health-dot {
+            background: #d97706;
+        }
+
+        .footer {
+            margin-top: 30px;
+            font-size: 0.85rem;
+            color: #94a3b8;
         }
     </style>
 </head>
 
 <body>
-    <h1>Hello from Python</h1>
-    <p>This page is being served by a Python web server.</p>
-    <p>Current version: #APP_VERSION#</p>
+    <main class="card">
+        <h1>Hello from Python</h1>
+        <p>This page is being served by a Python web server.</p>
+
+        <div class="version">Current version: #APP_VERSION#</div>
+
+        <div>
+            <button id="health-status" class="health-button checking"
+                    type="button" aria-live="polite">
+                <span class="health-dot"></span>
+                <span id="health-text">Checking health...</span>
+            </button>
+        </div>
+
+        <p id="health-details">Contacting the health endpoint...</p>
+
+        <p class="footer">Jenkins Capstone · Automated deployment and health monitoring</p>
+    </main>
+
+    <script>
+        const statusButton = document.getElementById('health-status');
+        const statusText = document.getElementById('health-text');
+        const healthDetails = document.getElementById('health-details');
+
+        async function checkHealth() {
+            statusButton.className = 'health-button checking';
+            statusText.textContent = 'Checking health...';
+            healthDetails.textContent = 'Contacting the health endpoint...';
+
+            try {
+                const response = await fetch('/health', {
+                    cache: 'no-store'
+                });
+
+                const result = await response.text();
+
+                if (response.ok && result.trim() === 'healthy') {
+                    statusButton.className = 'health-button healthy';
+                    statusText.textContent = 'Application Healthy';
+                    healthDetails.textContent =
+                        'The /health endpoint is responding successfully.';
+                } else {
+                    statusButton.className = 'health-button unhealthy';
+                    statusText.textContent = 'Application Unhealthy';
+                    healthDetails.textContent =
+                        'The health endpoint returned an unexpected response.';
+                }
+            } catch (error) {
+                statusButton.className = 'health-button unhealthy';
+                statusText.textContent = 'Application Unreachable';
+                healthDetails.textContent =
+                    'Unable to contact the health endpoint.';
+            }
+        }
+
+        checkHealth();
+
+        // Refresh the status every 30 seconds.
+        setInterval(checkHealth, 30000);
+
+        // Allow users to manually check the status.
+        statusButton.addEventListener('click', checkHealth);
+    </script>
 </body>
 </html>
