@@ -201,10 +201,11 @@ pipeline {
                         sh '''
                             aws configure set region us-east-2
                             aws --version
-                            sed -i "s/#APP_VERSION#/$APP_VERSION/g" aws/task-definition-prod.json
-                            sed -i "s/#QUAY_USERNAME#/$QUAY_ORG/g" aws/task-definition-prod.json
-                            sed -i "s/#APP_NAME#/$APP_NAME/g" aws/task-definition-prod.json
-                            LATEST_TD_REVISION=$(aws ecs register-task-definition --cli-input-json file://aws/task-definition-prod.json | jq '.taskDefinition.revision')
+                            cp aws/task-definition-prod.json tmp/task-definition-prod.json
+                            sed -i "s/#APP_VERSION#/$APP_VERSION/g" tmp/task-definition-prod.json
+                            sed -i "s/#QUAY_USERNAME#/$QUAY_ORG/g" tmp/task-definition-prod.json
+                            sed -i "s/#APP_NAME#/$APP_NAME/g" tmp/task-definition-prod.json
+                            LATEST_TD_REVISION=$(aws ecs register-task-definition --cli-input-json file://tmp/task-definition-prod.json | jq '.taskDefinition.revision')
                             aws ecs update-service --cluster $AWS_ECS_CLUSTER --service $AWS_ECS_SERVICE_PROD --task-definition JenkinsCapstone-TaskDefinition-Prod:$LATEST_TD_REVISION
                             aws ecs wait services-stable --cluster $AWS_ECS_CLUSTER --service $AWS_ECS_SERVICE_PROD
                         '''
@@ -222,7 +223,7 @@ pipeline {
             }
 
             environment {
-                BASE_URL = "http://jenkins-capstone-prod-alb-1107757812.us-east-2.elb.amazonaws.com"
+                BASE_URL = "http://jenkins-capstone-prod-alb-1107757812.us-east-2.elb.amazonaws.com/test-fail"
             }
 
             steps {
