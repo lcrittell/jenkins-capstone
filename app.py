@@ -1,5 +1,5 @@
-import os
 from http.server import HTTPServer, SimpleHTTPRequestHandler
+import os
 
 HOST = "0.0.0.0"
 PORT = int(os.environ.get("PORT", "8000"))
@@ -11,7 +11,7 @@ class HealthCheckHandler(SimpleHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", "text/plain")
             self.end_headers()
-            self.wfile.write(b"")
+            self.wfile.write(b"healthy")
             return
 
         super().do_GET()
