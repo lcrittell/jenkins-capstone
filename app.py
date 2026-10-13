@@ -11,7 +11,7 @@ class HealthCheckHandler(SimpleHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", "text/plain")
             self.end_headers()
-            self.wfile.write(b"healthy")
+            self.wfile.write(b"")
             return
 
         super().do_GET()
